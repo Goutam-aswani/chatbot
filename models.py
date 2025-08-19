@@ -55,6 +55,7 @@ class User(SQLModel,table = True):
     id: Optional[int] = Field(default=None,primary_key=True)
     username: str = Field(unique= True,index= True)
     email: EmailStr = Field(unique= True)
+    full_name: Optional[str] = Field(default=None)
     hashed_password: str 
     disabled: bool = False
     role: Role = Field(default=Role.USER, nullable=False)
@@ -89,6 +90,10 @@ class UserRead(SQLModel):
     is_verified: bool
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+class UserUpdate(SQLModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
 
 class Forgot_password_request(SQLModel):
     email:EmailStr

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks,status
 from sqlmodel import Session , select
 from database import get_session
-from models import User, UserCreate, UserRead,Forgot_password_request,Reset_password_request,VerifyEmailRequest
+from models import User, UserCreate, UserRead,Forgot_password_request,Reset_password_request,VerifyEmailRequest,UserUpdate
 from security import get_password_hash, create_access_token, create_password_reset_token, verify_password, verify_password_reset_token
 from dependencies import get_current_active_user, get_user , get_current_user
 from datetime import datetime, timedelta, UTC
@@ -148,6 +148,24 @@ def reset_password(
 async def read_user_me(current_user:User = Depends(get_current_active_user)):
     return current_user
 
-@router.get("/users/items")
-async def read_own_items(current_user:User = Depends(get_current_active_user)):
+@router.put("/me", response_model=UserRead)
+async def update_user_me(
+        *,
+        user_update: UserUpdate,
+        session : Session = Depends(get_session),
+        current_user: User = Depends(get_current_active_user)
+):
+    if user_update.email:
+        existing_user = get_user_by_email(session,user_update.email)
+        if existing_user and existing_user.id != current_user.id:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        current_user.email = user_update.email
+
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
     return current_user
+

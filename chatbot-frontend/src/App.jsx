@@ -7,6 +7,8 @@ import LoginPage from './pages/LoginPage';
 import ChatPage from './pages/ChatPage';
 import SignupPage from './pages/SignupPage';
 import VerifyPage from './pages/VerifyPage';
+import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
 
 // The rest of the file remains the same...
 
@@ -40,6 +42,22 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+                path="/profile"
+                element={
+                    <ProtectedRoute>
+                        <ProfilePage />
+                    </ProtectedRoute>
+                }
+            />
+      <Route
+                path="/settings"
+                element={
+                    <ProtectedRoute>
+                        <SettingsPage />
+                    </ProtectedRoute>
+                }
+            />
       <Route 
         path="/" 
         element={<Navigate to={token ? "/chat" : "/login"} />} 

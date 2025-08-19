@@ -12,6 +12,7 @@ export default function ChatPage() {
     const { token } = useAuth();
     const [sessions, setSessions] = useState([]);
     const [activeSession, setActiveSession] = useState(null);
+    const [currentUser,SetCurrentUser] = useState(null);
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -24,6 +25,9 @@ export default function ChatPage() {
         try {
             const data = await api.getChatSessions(token);
             setSessions(data);
+            
+            console.log('--- DEBUG: Fetched data:', data);
+            console.log('--- DEBUG: Fetched sessions:', sessions);
         } catch (error) {
             console.error("Failed to fetch sessions:", error);
         } finally {

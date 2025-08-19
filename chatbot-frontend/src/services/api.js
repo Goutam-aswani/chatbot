@@ -205,5 +205,50 @@ export const api = {
             console.error('Failed to rename session:', error.response?.data || error.message);
             throw new Error('Failed to rename session');
         }
+    },
+    async getUserProfile(token) {
+        try {
+            const response = await apiClient.get('/users/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to fetch user profile:', error.response?.data || error.message);
+            throw new Error('Failed to fetch user profile');
+        }
+    },
+    async updateUserProfile(token, profileData) {
+        try {
+            const response = await apiClient.put('/users/me', profileData, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to update user profile:', error.response?.data || error.message);
+            throw new Error('Failed to update user profile');
+        }
+    },
+    async forgotPassword(email) {
+        try {
+            const payload = { email };
+            const response = await apiClient.post('/users/forget_password', payload);
+            return response.data;
+        } catch (error) {
+            console.error('Forgot password request failed:', error.response?.data || error.message);
+            throw error.response?.data || new Error('Forgot password request failed');
+        }
     }
+
+    // async changePassword(token, currentPassword, newPassword) {
+    //     try {
+    //         const payload = { current_password: currentPassword, new_password: newPassword };
+    //         const response = await apiClient.put('/users/change-password', payload, {
+    //             headers: { 'Authorization': `Bearer ${token}` }
+    //         });
+    //         return response.data;
+    //     } catch (error) {
+    //         console.error('Failed to change password:', error.response?.data || error.message);
+    //         throw new Error('Failed to change password');
+    //     }
+    // }
 };

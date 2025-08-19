@@ -1,5 +1,3 @@
-// src/pages/LoginPage.jsx
-
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom'; // Make sure Link and useLocation are 
 import { useAuth } from '../hooks/useAuth'; 
@@ -28,13 +26,14 @@ export default function LoginPage() {
     };
         
     return (
-        <div
-    className="flex items-center justify-center h-screen bg-gray-900 text-white p-4 bg-cover bg-center"
-    style={{
-      backgroundImage: "url('https://i.imgur.com/3pGCUmP.jpeg')"
-    }}
-  >
-            <div className="w-full max-w-sm p-8 space-y-6 bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl">
+ <div className="flex items-center justify-center h-screen text-white p-4">
+ <div
+ className="absolute inset-0 bg-cover bg-center"
+ style={{
+ backgroundImage: "url('https://i.imgur.com/3pGCUmP.jpeg')",
+ }}
+ ></div>
+            <div className="relative z-10 w-full max-w-sm p-8 space-y-6 bg-background/80 backdrop-blur-sm rounded-2xl shadow-2xl animate-fade-in-up">
                 <div className="flex flex-col items-center space-y-2">
                     <div className="bg-blue-600 p-3 rounded-full">
                       <Bot className="w-8 h-8 text-white" />
@@ -50,7 +49,7 @@ export default function LoginPage() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="Username"
-                        className="w-full px-4 py-2 text-white bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        className="w-full px-4 py-2 text-foreground bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all"
                         required
                     />
                     <input
@@ -58,11 +57,12 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Password"
-                        className="w-full px-4 py-2 text-white bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        className="w-full px-4 py-2 text-foreground bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all"
                         required
                     />
                     {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-                    <button type="submit" className="w-full px-4 py-3 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all transform hover:scale-105">
+                    {/* <button type="submit" className="w-full px-4 py-3 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all transform hover:scale-105"> */}
+                    <button type="submit" className="w-full px-4 py-3 font-bold text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-all transform hover:scale-105">    
                         Login
                     </button>
                 </form>
@@ -70,7 +70,7 @@ export default function LoginPage() {
                 {/* This is the link to the signup page */}
                 <p className="text-center text-sm text-gray-400">
                     Don't have an account?{' '}
-                    <Link to="/signup" className="font-medium text-blue-400 hover:underline">
+                    <Link to="/signup" className="font-medium text-primary hover:underline">
                         Sign Up
                     </Link>
                 </p>

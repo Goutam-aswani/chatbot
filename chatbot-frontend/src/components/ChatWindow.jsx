@@ -23,7 +23,7 @@ export default function ChatWindow({ messages, onSendMessage, isLoading }) {
     };
 
     return (
-        <div className="flex-1 flex flex-col bg-neutral-900 ">
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-background to-secondary">
             <div className="flex-1 p-6 overflow-y-auto">
                 {messages.length === 0 && !isLoading && (
                     <div className="flex flex-col items-center justify-center h-full text-hsl(var(--muted-foreground))">
@@ -33,11 +33,14 @@ export default function ChatWindow({ messages, onSendMessage, isLoading }) {
                     </div>
                 )}
                 {messages.map((msg) => <ChatMessage key={msg.id || Date.now()} message={msg} />)}
-                {isLoading && <ChatMessage message={{ role: 'model', content: '...' }} />}
+                {isLoading && (
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm mt-2">
+                        Bot is typing...
+                    </div>
+                )}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="p-8 bg-hsl(var(--background))/80 backdrop-blur-sm  mx-40">
-                <div className="relative" onClick={handleSend}>
+                <div className="flex items-center justify-center mb-5   ">
                     {/* <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
@@ -55,9 +58,11 @@ export default function ChatWindow({ messages, onSendMessage, isLoading }) {
                             e.target.style.height = `${e.target.scrollHeight}px`;
                         }}
                     /> */}
-                    {/* <Input type="email" placeholder="Email" /> */}
-                    <Input type="text" placeholder="Type your message..." 
-                    value={input}
+                    <Input
+                        type="text"
+                        placeholder="Type your message..."
+                        value={input}
+                        size="sm"
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
@@ -65,32 +70,13 @@ export default function ChatWindow({ messages, onSendMessage, isLoading }) {
                                 handleSend();
                             }
                         }}
-                        className="py-8 rounded-xl shadow-md"
-                        rows="1"
-                        onInput={(e) => {
-                            e.target.style.height = 'auto';
-                            e.target.style.height = `${e.target.scrollHeight}px`;
-                        }}
-                        but = {<Button variant="secondary" size="icon" className="size-8"
-                        onClick={handleSend}
-                        disabled={!input.trim()}
-                    >
-                       <Send/>
-                     </Button>}
-                        />
-
-
-                    {/* <button
-                        onClick={handleSend}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-blue-600 rounded-full hover:bg-blue-700 transition-all disabled:bg-gray-500"
-                        disabled={!input.trim()}
-                    >
-                        <Send className="w-5 h-5 text-white" />
-                    </button> */}
-                    
-
+                        className="flex-1 px-10 py-6 mx-20 text-left" // Add padding on the right for the button
+                    />
+                    <button className="p-2 text-muted-foreground hover:text-foreground  transition-colors duration-200 ease-in-out">
+                        <Send className="w-6 h-6  rotate-45" />
+                    </button>
+                       
                 </div>
             </div>
-        </div>
     );
 };

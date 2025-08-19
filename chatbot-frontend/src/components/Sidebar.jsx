@@ -1,9 +1,9 @@
-// /chatbot-frontend/src/components/Sidebar.jsx
-
 import { useState, useEffect, useRef } from 'react';
 // *** CHANGE: Import new icons for collapsing/expanding the sidebar ***
-import { Plus, LogOut, MessageSquare, Trash2, MoreHorizontal, Pencil, Check, X, ChevronsLeft,PanelRight,ChevronsRight } from 'lucide-react';
+import { Plus, LogOut, MessageSquare, Trash2, MoreHorizontal, Pencil, Check, X, ChevronsLeft,PanelRight,User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { Link } from 'react-router-dom';
+import { Settings } from 'lucide-react';
 
 // The SessionItem component remains unchanged as its logic is self-contained.
 const SessionItem = ({ session, onSelect, onDelete, onRename, activeSessionId }) => {
@@ -59,7 +59,7 @@ const SessionItem = ({ session, onSelect, onDelete, onRename, activeSessionId })
     };
     
     return (
-        <div className="relative group bg-zinc-900 hover:bg-slate-700 rounded-xl shadow-lg">
+        <div className="relative group bg-secondary hover:bg-secondary/70 rounded-xl shadow-lg transition-colors duration-200 ease-in-out">
             {isRenaming ? (
                 <div className="flex items-center w-full bg-hsl(var(--accent)) rounded-lg">
                     <input
@@ -77,10 +77,10 @@ const SessionItem = ({ session, onSelect, onDelete, onRename, activeSessionId })
                 <>
                     <button
                         onClick={() => onSelect(session.id)}
-                        className={`flex items-center w-full text-left pl-3 pr-10 py-2 text-sm rounded-lg truncate transition-colors ${
-                            activeSessionId === session.id 
-                            ? 'bg-blue-600/30 text-white' 
-                            : 'text-hsl(var(--muted-foreground)) hover:bg-hsl(var(--accent))'
+                        className={`flex items-center w-full text-left pl-3 pr-10 py-2.5 text-sm rounded-xl my-2 shadow-md truncate transition-colors duration-200 ease-in-out ${
+                            activeSessionId === session.id
+                            ? 'bg-primary/10 text-primary border-l-2 border-primary'
+                            : 'text-muted-foreground hover:bg-accent/50'
                         }`}
                     >
                         <MessageSquare className="w-4 h-4 mr-3 flex-shrink-0" />
@@ -88,7 +88,7 @@ const SessionItem = ({ session, onSelect, onDelete, onRename, activeSessionId })
                     </button>
                     <button
                         onClick={handleMenuToggle}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 rounded-md bg-transparent hidden group-hover:block hover:bg-blue-500 hover:text-white"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground rounded-md bg-transparent opacity-0 group-hover:opacity-100 hover:text-foreground"
                         title="More options"
                     >
                         <MoreHorizontal className="w-4 h-4" />
@@ -125,7 +125,7 @@ export default function Sidebar({ sessions, onSelectSession, onNewChat, onDelete
                 // --- COLLAPSED VIEW ---
                 <>
                     {/* Expand Button */}
-                    <button onClick={onToggleCollapse} className="p-2 text-hsl(var(--muted-foreground)) hover:text-white mb-4">
+                    <button onClick={onToggleCollapse} className="p-2 text-muted-foreground hover:text-foreground mb-4 transition-colors duration-200 ease-in-out">
                         <PanelRight className="w-6 h-6" />
                     </button>
                     {/* New Chat Button (Icon Only) */}
@@ -141,7 +141,7 @@ export default function Sidebar({ sessions, onSelectSession, onNewChat, onDelete
                     {/* Logout Button (Icon Only) */}
                     <button 
                         onClick={logout} 
-                        className="flex items-center justify-center w-full h-12 text-hsl(var(--muted-foreground)) bg-hsl(var(--secondary)) rounded-lg hover:bg-red-600 hover:text-white"
+                        className="flex items-center justify-center w-full h-12 text-muted-foreground bg-secondary rounded-lg hover:bg-red-600 hover:text-white transition-colors duration-200 ease-in-out"
                         title="Logout"
                     >
                         <LogOut className="w-6 h-6" />
@@ -150,16 +150,27 @@ export default function Sidebar({ sessions, onSelectSession, onNewChat, onDelete
             ) : (
                 // --- EXPANDED VIEW (Your original code) ---
                 <>
+                    {/* Profile Button */}
+                    <div className="flex items-center justify-between mb-4">
+                    <Link to = "/profile"
+                    // onClick={() => alert('Profile Clicked')} // Placeholder action
+                    className="flex items-center text-sm font-semibold text-muted-foreground hover:bg-accent/50 rounded-lg transition-colors p-3"
+                    ><User className= "size-7"/>
+                    <h2 className="ml-3 text-lg font-jp">Profile</h2>
+                    </Link>
+
+
                     {/* Collapse Button */}
-                    <button onClick={onToggleCollapse} className="self-end p-2 text-hsl(var(--muted-foreground)) hover:text-white mb-2">
-                        <ChevronsLeft className="w-6 h-6" />
+                        <button onClick={onToggleCollapse} className="flex items-center text-sm font-semibold text-muted-foreground hover:bg-accent/50 rounded-lg transition-colors p-3 ease-in-out">
+                        <PanelRight className="size-6" />
                     </button>
+                    </div>
                     {/* New Chat Button (With Text) */}
                     <button 
                         onClick={onNewChat} 
-                        className="flex items-center justify-center w-full px-4 py-2 mb-4 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all transform hover:scale-105"
+                        className="flex items-center justify-center w-full px-4 py-2.5 mb-4 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all transform hover:scale-105 shadow-md"
                     >
-                        <Plus className="w-4 h-4 mr-2" /> New Chat
+                        <Plus className="w-4 h-4 mr-2" /> New Chat 
                     </button>
                     {/* History List */}
                     <div className="flex-grow overflow-y-auto -mr-2 pr-2">
@@ -179,15 +190,31 @@ export default function Sidebar({ sessions, onSelectSession, onNewChat, onDelete
                             ))
                         )}
                     </div>
+
+                        
+                    {/* Settings Button */}
+<div className="pt-2 border-t border-hsl(var(--border))">
+                        <Link
+                            to="/settings" // CHANGE THIS TO /settings
+                            className="flex items-center justify-center w-full px-4 py-2 mt-2 text-sm font-semibold text-hsl(var(--muted-foreground)) bg-hsl(var(--secondary)) rounded-lg hover:bg-gray-600 hover:text-white transition-colors"
+                        >
+                            <Settings className="w-4 h-4 mr-2" /> Settings
+                        </Link>
+                        {/* ... (logout button remains the same) */}
+                    </div>
+ {/* Theme Toggle Button */}
+                    <button
+ className="flex items-center w-full px-4 py-2 text-sm font-semibold text-muted-foreground hover:bg-accent/50 rounded-lg transition-colors mt-1"
+ >
+ Settings
+ </button>
                     {/* Logout Button (With Text) */}
-                    <button 
-                        onClick={logout} 
-                        className="flex items-center justify-center w-full px-4 py-2 mt-4 text-sm font-semibold text-hsl(var(--muted-foreground)) bg-hsl(var(--secondary)) rounded-lg hover:bg-red-600 hover:text-white transition-colors"
-                    >
-                        <LogOut className="w-4 h-4 mr-2" /> Logout
-                    </button>
+                    <button onClick={logout} className="flex items-center justify-center w-full px-4 py-2.5 mt-4 text-sm font-semibold text-red-500 bg-secondary rounded-lg hover:bg-red-600/20 transition-colors shadow-md">
+ <LogOut className="w-4 h-4 mr-2" /> Logout
+ </button>
                 </>
             )}
         </div>
     );
 };
+

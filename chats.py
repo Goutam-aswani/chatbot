@@ -216,7 +216,7 @@ def post_new_message(
         select(ChatMessage)
         .where(ChatMessage.session_id == chat_session.id)
         .order_by(ChatMessage.created_at)
-        .limit(20)
+        .limit(10)
     )
     db_messages = db_session.exec(statement).all()
     print(f"--- DEBUG: Fetched {len(db_messages)} messages from DB for session {chat_session.id} ---")

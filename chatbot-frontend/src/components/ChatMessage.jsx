@@ -24,10 +24,10 @@ const CodeBlock = ({ node, inline, className, children, ...props }) => {
     }
 
     return (
-        <div className="bg-gray-900/70 rounded-lg my-4 overflow-hidden border border-gray-700">
-            <div className="flex justify-between items-center px-4 py-1.5 bg-gray-800">
-                <span className="text-xs font-sans text-gray-400">{language}</span>
-                <button onClick={handleCopy} className="text-gray-400 hover:text-white transition-colors">
+        <div className="bg-secondary rounded-lg my-4 overflow-hidden border border-border shadow-md">
+            <div className="flex justify-between items-center px-4 py-2 bg-muted">
+                <span className="text-xs font-sans text-muted-foreground">{language}</span>
+                <button onClick={handleCopy} className="text-muted-foreground hover:text-foreground transition-colors flex items-center">
                     {isCopied ? (
                         <span className="flex items-center text-xs text-green-400">
                             <Check className="w-4 h-4 mr-1" /> Copied!
@@ -39,7 +39,7 @@ const CodeBlock = ({ node, inline, className, children, ...props }) => {
                     )}
                 </button>
             </div>
-            <pre className="p-4 overflow-x-auto text-sm" {...props}>
+            <pre className="p-4 overflow-x-auto text-sm text-foreground" {...props}>
                 <code>{children}</code>
             </pre>
         </div>
@@ -49,15 +49,40 @@ const CodeBlock = ({ node, inline, className, children, ...props }) => {
 
 export default function ChatMessage({ message }) {
     const isUser = message.role === 'user';
+const [isCopied, setIsCopied] = useState(false);
+
+    const handleCopyMessage = () => {
+        navigator.clipboard.writeText(message.content);
+        setIsCopied(true);
+ setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+    };
+
+    // Format timestamp if it exists
+ const formattedTimestamp = message.timestamp ? format(new Date(message.timestamp), 'p') : null; // Using 'p' for short time format (e.m., 11:59 PM)
+    
+
     
     return (
         <div className={`flex items-start gap-4 my-4 fade-in ${isUser ? 'justify-end' : ''}`}>
             {!isUser && 
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
-                    <Bot className="w-6 h-6 text-white"/>
+ <Bot className="w-6 h-6 text-white" />
                 </div>
             }
-            <div className={`max-w-none p-4 rounded-2xl shadow-md ${isUser ? 'bg-blue-600 rounded-br-none' : 'bg-gray-700 rounded-bl-none'}`}>
+            <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm relative ${isUser ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-br-none' : 'bg-secondary text-secondary-foreground rounded-bl-none'}`}>
+                {/* Copy Button for non-code messages */}
+                {!isUser && (
+                    <button onClick={handleCopyMessage} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground text-xs">
+                        {isCopied ? <Check className="w-3 h-3" /> : <Clipboard className="w-3 h-3" />}
+                    </button>
+                )}
+
+                {/* Conditional Image Rendering */}
+                {message.imageUrl && (
+                    <div className="mb-4">
+                        <img src={message.imageUrl} alt="message attachment" className="max-w-full h-auto rounded-md" />
+                    </div>
+                )}
                 <ReactMarkdown
                     rehypePlugins={[rehypeHighlight]}
                     components={{
@@ -70,8 +95,14 @@ export default function ChatMessage({ message }) {
                 >
                     {message.content}
                 </ReactMarkdown>
+                                {/* Timestamp */}
+                {formattedTimestamp && (
+                    <div className={`text-[0.65rem] mt-2 ${isUser ? 'text-primary-foreground/70 text-right' : 'text-muted-foreground text-left'}`}>
+                        {formattedTimestamp}
+                    </div>
+                )}
             </div>
-            {isUser && 
+            {isUser &&
                 <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0 shadow-lg">
                     <User className="w-5 h-5 text-white"/>
                 </div>
