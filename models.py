@@ -22,6 +22,8 @@ class ChatSession(SQLModel, table=True):
     # Establishes the one-to-many relationship from User -> ChatSession
     user: "User" = Relationship(back_populates="sessions")
     
+    has_documents: bool = Field(default=False)
+    
     # Establishes the one-to-many relationship to ChatMessage
     # messages: List["ChatMessage"] = Relationship(back_populates="session")
     messages: List["ChatMessage"] = Relationship(

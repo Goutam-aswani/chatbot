@@ -104,6 +104,7 @@ export async function streamMessage(token, prompt, sessionId, onChunk) {
 
 
 export const api = {
+    
     async register(username, email, password) {
         try {
             const payload = { username, email, password };
@@ -165,6 +166,26 @@ export const api = {
 
     // NOTE: This function is no longer used for sending messages but is kept for reference.
     // The new `streamMessage` function above is now used instead.
+    async uploadDocument(token, sessionId, file) {
+        const formData = new FormData();
+        formData.append('file', file);
+    
+        const response = await fetch(`${API_BASE_URL}/rag/upload/${sessionId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+        });
+    
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to upload document');
+        }
+    
+        return await response.json();
+    },
+
     async postMessage(token, prompt, sessionId) {
         try {
             const payload = { prompt, session_id: sessionId };
@@ -237,7 +258,8 @@ export const api = {
             console.error('Forgot password request failed:', error.response?.data || error.message);
             throw error.response?.data || new Error('Forgot password request failed');
         }
-    }
+    },
+
 
     // async changePassword(token, currentPassword, newPassword) {
     //     try {

@@ -3,6 +3,7 @@ from database import create_db_and_tables
 import auth
 import users
 import chats
+import rag
 from middleware import setup_cors
 from limiter import limiter
 from slowapi import _rate_limit_exceeded_handler
@@ -26,6 +27,7 @@ def on_startup():
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(chats.router)
+app.include_router(rag.router)
 
 
 @app.get("/")

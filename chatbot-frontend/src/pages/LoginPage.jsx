@@ -49,7 +49,7 @@ export default function LoginPage() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="Username"
-                        className="w-full px-4 py-2 text-foreground bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                        className="w-full px-4 py-2 text-black bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all"
                         required
                     />
                     <input
@@ -57,7 +57,7 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Password"
-                        className="w-full px-4 py-2 text-foreground bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                        className="w-full px-4 py-2 text-black bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all"
                         required
                     />
                     {error && <p className="text-red-400 text-sm text-center">{error}</p>}

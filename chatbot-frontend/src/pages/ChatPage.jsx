@@ -5,8 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { api, streamMessage } from '../services/api';
 import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
-import { Hand } from 'lucide-react';
-import { PanelRight } from 'lucide-react';
+import { Hand, PanelRight, Paperclip } from 'lucide-react';
 
 export default function ChatPage() {
     const { token } = useAuth();
@@ -18,6 +17,7 @@ export default function ChatPage() {
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [textQueue, setTextQueue] = useState('');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const fileInputRef = useRef(null);
 
     const fetchSessions = async () => {
         if (!token) return;
@@ -158,6 +158,30 @@ export default function ChatPage() {
             console.error("Failed to rename session:", error);
         }
     };
+    const handleFileUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!activeSession) {
+            alert("Please start a conversation before uploading a document.");
+            return;
+        }
+
+        // Optional: Add a loading indicator specifically for uploads
+        console.log(`Uploading ${file.name} to session ${activeSession}...`);
+        
+        try {
+            const response = await api.uploadDocument(token, activeSession, file);
+            alert(`Successfully uploaded ${file.name}!`); // Replace with a better notification
+            console.log(response.message);
+        } catch (error) {
+            console.error("File upload failed:", error);
+            alert("Failed to upload the document. Please try again.");
+        } finally {
+            // Reset the file input so the user can upload the same file again
+            event.target.value = null; 
+        }
+    };
 
     return (
         <div className="flex h-screen font-sans">
@@ -176,6 +200,8 @@ export default function ChatPage() {
                 messages={messages}
                 onSendMessage={handleSendMessage}
                 isLoading={isLoading}
+                onFileUpload={handleFileUpload}
+                fileInputRef={fileInputRef}
             />
         </div>
     );

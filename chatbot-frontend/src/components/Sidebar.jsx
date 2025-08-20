@@ -203,11 +203,11 @@ export default function Sidebar({ sessions, onSelectSession, onNewChat, onDelete
                         {/* ... (logout button remains the same) */}
                     </div>
  {/* Theme Toggle Button */}
-                    <button
+                    {/* <button
  className="flex items-center w-full px-4 py-2 text-sm font-semibold text-muted-foreground hover:bg-accent/50 rounded-lg transition-colors mt-1"
  >
  Settings
- </button>
+ </button> */}
                     {/* Logout Button (With Text) */}
                     <button onClick={logout} className="flex items-center justify-center w-full px-4 py-2.5 mt-4 text-sm font-semibold text-red-500 bg-secondary rounded-lg hover:bg-red-600/20 transition-colors shadow-md">
  <LogOut className="w-4 h-4 mr-2" /> Logout
