@@ -1,4 +1,4 @@
-// /chatbot-frontend/src/pages/ChatPage.jsx - Updated handleSendMessage function
+// /chatbot-frontend/src/pages/ChatPage.jsx - Updated handleSendMessage function with typing delay
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
@@ -15,9 +15,11 @@ export default function ChatPage() {
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-    const [textQueue, setTextQueue] = useState('');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const fileInputRef = useRef(null);
+
+    // Ref to keep track of the ongoing typing animation
+    const typingTimeoutRef = useRef(null);
 
     const fetchSessions = async () => {
         if (!token) return;
@@ -25,7 +27,7 @@ export default function ChatPage() {
         try {
             const data = await api.getChatSessions(token);
             setSessions(data);
-            
+
             console.log('--- DEBUG: Fetched data:', data);
             console.log('--- DEBUG: Fetched sessions:', sessions);
         } catch (error) {
@@ -39,36 +41,15 @@ export default function ChatPage() {
         fetchSessions();
     }, [token]);
 
+    // Cleanup the typing timeout when the component unmounts or a new message is sent
     useEffect(() => {
-        if (textQueue.length === 0) {
-            return;
-        }
+        return () => {
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+        };
+    }, [messages]); // Add messages as a dependency to clear timeout when new message is added
 
-        const timerId = setTimeout(() => {
-            setMessages(prevMessages => {
-                const updatedMessages = [...prevMessages];
-                const lastMessageIndex = updatedMessages.length - 1;
-
-                if (lastMessageIndex >= 0) {
-                    const lastMessage = updatedMessages[lastMessageIndex];
-                   
-                    if (lastMessage && lastMessage.role === 'model') {
-                        const updatedLastMessage = {
-                            ...lastMessage,
-                            content: lastMessage.content + textQueue[0]
-                        };
-                        updatedMessages[lastMessageIndex] = updatedLastMessage;
-                    }
-                }
-                return updatedMessages;
-            });
-
-            setTextQueue(prevQueue => prevQueue.substring(1));
-        }, 5);
-
-        return () => clearTimeout(timerId);
-
-    }, [textQueue, messages]);
 
     const handleSelectSession = async (sessionId) => {
         setIsLoading(true);
@@ -89,34 +70,42 @@ export default function ChatPage() {
         setMessages([]);
     };
 
-    // *** CHANGE: Modified handleSendMessage to capture session ID from response ***
     const handleSendMessage = async (prompt) => {
-        // *** ENHANCED DEBUG: Log the current session state ***
         console.log('--- DEBUG: handleSendMessage called with activeSession:', activeSession);
-       
+
         const optimisticUserMessage = { id: `user-${Date.now()}`, role: 'user', content: prompt };
+        // Add a unique ID for the bot placeholder message to help with updates
         const botPlaceholder = { id: `model-${Date.now()}`, role: 'model', content: '' };
-       
+
         setMessages(prev => [...prev, optimisticUserMessage, botPlaceholder]);
         setIsLoading(true);
 
         try {
-            // *** CHANGE: Capture the response metadata from streamMessage ***
+            // Store the accumulated response outside the onChunk for processing
+            let accumulatedResponse = '';
+
             const streamResponse = await streamMessage(
                 token,
                 prompt,
-                activeSession, // This might be null for new conversations
+                activeSession,
                 (chunk) => {
-                    setTextQueue(prevQueue => prevQueue + chunk);
+                    // Append the new chunk to the accumulated response
+                    accumulatedResponse += chunk;
+
+                    // Clear any existing typing timeout
+                    if (typingTimeoutRef.current) {
+                        clearTimeout(typingTimeoutRef.current);
+                    }
+
+                    // Start a new typing animation for the accumulated response
+                    typeResponse(botPlaceholder.id, accumulatedResponse);
                 }
             );
 
-            // *** CHANGE: If a new session was created, update our activeSession state ***
             if (streamResponse && streamResponse.sessionWasCreated) {
                 console.log('--- DEBUG: New session was created, updating activeSession to:', streamResponse.sessionId);
                 setActiveSession(streamResponse.sessionId);
             } else if (streamResponse && streamResponse.sessionId && !activeSession) {
-                // *** CHANGE: Handle case where session ID is returned but we didn't have one ***
                 console.log('--- DEBUG: Received session ID, setting activeSession to:', streamResponse.sessionId);
                 setActiveSession(streamResponse.sessionId);
             }
@@ -133,10 +122,39 @@ export default function ChatPage() {
             });
         } finally {
             setIsLoading(false);
-            // *** CHANGE: Refresh sessions list to show the new session if one was created ***
             fetchSessions();
         }
     };
+
+    // Function to simulate typing effect
+    const typeResponse = (messageId, textToType) => {
+        setMessages(prevMessages => {
+            const updatedMessages = [...prevMessages];
+            const messageIndex = updatedMessages.findIndex(msg => msg.id === messageId);
+
+            if (messageIndex !== -1) {
+                const currentContent = updatedMessages[messageIndex].content;
+                const charactersToType = textToType.substring(currentContent.length);
+
+                if (charactersToType.length > 0) {
+                    const nextChar = charactersToType[0];
+                    updatedMessages[messageIndex].content += nextChar;
+
+                    // Schedule the next character with a delay
+                    typingTimeoutRef.current = setTimeout(() => {
+                        typeResponse(messageId, textToType);
+                    }, 50); // Adjust the delay (milliseconds) here for typing speed
+                } else {
+                     // If all characters are typed, clear the timeout
+                     if (typingTimeoutRef.current) {
+                        clearTimeout(typingTimeoutRef.current);
+                    }
+                }
+            }
+            return updatedMessages;
+        });
+    };
+
 
     const handleDeleteSession = async (sessionId) => {
         try {
@@ -167,19 +185,17 @@ export default function ChatPage() {
             return;
         }
 
-        // Optional: Add a loading indicator specifically for uploads
         console.log(`Uploading ${file.name} to session ${activeSession}...`);
-        
+
         try {
             const response = await api.uploadDocument(token, activeSession, file);
-            alert(`Successfully uploaded ${file.name}!`); // Replace with a better notification
+            alert(`Successfully uploaded ${file.name}!`);
             console.log(response.message);
         } catch (error) {
             console.error("File upload failed:", error);
             alert("Failed to upload the document. Please try again.");
         } finally {
-            // Reset the file input so the user can upload the same file again
-            event.target.value = null; 
+            event.target.value = null;
         }
     };
 
@@ -205,4 +221,4 @@ export default function ChatPage() {
             />
         </div>
     );
-};  
+};

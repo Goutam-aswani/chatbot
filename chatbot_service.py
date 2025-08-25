@@ -199,10 +199,10 @@ User query: {query}
 
 Decide: If the query is good, return it unchanged. Otherwise, rewrite it into a short, precise, and retrieval-friendly question.
 """)
-    parser = StrOutputParser()
-    query_rewriter_chain = rewrite_prompt | model | parser
-    enhanced_prompt = query_rewriter_chain.invoke({"query": prompt})
-    print(f"--- DEBUG: Enhanced prompt after rewriting: '{enhanced_prompt}' ---")
+    # parser = StrOutputParser()
+    # query_rewriter_chain = rewrite_prompt | model | parser
+    # enhanced_prompt = query_rewriter_chain.invoke({"query": prompt})
+    # print(f"--- DEBUG: Enhanced prompt after rewriting: '{enhanced_prompt}' ---")
     retriever = get_session_retriever_with_scores(session_id, similarity_threshold=0.95)
 
     retrieved_docs, has_sufficient_docs = check_document_relevance(retriever, prompt, min_docs=1)
@@ -293,11 +293,11 @@ MessagesPlaceholder(variable_name="chat_history"),
             "chat_history": itemgetter("chat_history"),
         }
         | rag_prompt
-        | llm
+        | model
         | StrOutputParser()
     )
     print(f"--- DEBUG: RAG chain created for session_id: {session_id} ---")
     return rag_chain.stream({
-        "input": enhanced_prompt,
+        "input": prompt,
         "chat_history": chat_history
     })

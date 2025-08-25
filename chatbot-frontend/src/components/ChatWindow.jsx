@@ -167,7 +167,7 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, onFileU
                 )}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="w-full bg-gray-900 border-t border-gray-800">
+          <div className="w-full bg-[hsl(var(--background))] border-t border-[hsl(var(--border))]"> {/* Use CSS variables */}
       {/* Hidden File Input */}
       <input
         type="file"
@@ -182,19 +182,21 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, onFileU
           {/* Main Input Container */}
           <div className="flex items-end gap-3">
             {/* File Upload Button */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
-              className="shrink-0 h-12 w-12 rounded-xl border border-gray-700 hover:border-gray-600 hover:bg-gray-800/50 transition-all duration-200 bg-gray-800 shadow-lg"
+              // Use CSS variables for file upload button
+              className="shrink-0 h-12 w-12 rounded-xl border border-[hsl(var(--border))] hover:border-[hsl(var(--border-hover))] hover:bg-[hsl(var(--secondary))] transition-all duration-200 bg-[hsl(var(--secondary))] shadow-lg"
             >
-              <Paperclip className="w-5 h-5 text-gray-400" />
+              {/* Use CSS variables for text color */}
+              <Paperclip className="w-5 h-5 text-[hsl(var(--muted-foreground))]" />
             </Button>
 
             {/* Input Field Container */}
             <div className="relative flex-1">
-              <div className="relative rounded-xl border border-gray-700 bg-gray-800 shadow-lg focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/50 transition-all duration-200">
+              <div className="relative rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--input))] shadow-lg focus-within:border-[hsl(var(--ring))] focus-within:ring-1 focus-within:ring-[hsl(var(--ring))]/50 transition-all duration-200"> {/* Use CSS variables */}
                 <textarea
                   placeholder="Type your message..."
                   value={input}
@@ -207,25 +209,28 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, onFileU
                   }}
                   disabled={isLoading}
                   rows={1}
-                  className="w-full resize-none rounded-xl px-4 py-3 pr-12 text-gray-100 placeholder:text-gray-500 focus:outline-none bg-transparent min-h-[48px] max-h-32"
+                  // Use CSS variables for text and placeholder color
+                  className="w-full resize-none rounded-xl px-4 py-3 pr-12 text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none bg-transparent min-h-[48px] max-h-32"
                   style={{
                     scrollbarWidth: 'thin',
-                    scrollbarColor: '#4b5563 transparent'
+                    // Use CSS variables for scrollbar color
+                    scrollbarColor: 'hsl(var(--muted-foreground)) transparent'
                   }}
                 />
-                
+
                 {/* Send Button */}
-                <div className="absolute bottom-2 right-2 ">
+                <div className="absolute bottom-2 right-2">
                   <button
                     onClick={handleSend}
                     disabled={isLoading || !input.trim()}
                     size="icon"
-                    className="h-10 w-10 rounded-lg bg-slate-500 hover:bg-black disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-200 shadow-lg flex items-center justify-center"
+                    // Use CSS variables for send button colors
+                    className="h-10 w-10 rounded-lg bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))/90] disabled:bg-[hsl(var(--muted))] disabled:cursor-not-allowed transition-all duration-200 shadow-lg flex items-center justify-center"
                   >
                     {isLoading ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                      <div className="w-4 h-4 border-2 border-[hsl(var(--primary-foreground))] border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      <Send className="w-4 h-4 text-white "/>
+                      <Send className="w-4 h-4 text-[hsl(var(--primary-foreground))]" />
                     )}
                   </button>
                 </div>
@@ -235,7 +240,8 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, onFileU
 
           {/* Input Hint */}
           <div className="flex justify-center mt-3">
-            <p className="text-xs text-gray-400 bg-gray-800/50 px-3 py-1 rounded-full border border-gray-700/50">
+            {/* Use CSS variables for text and background color */}
+            <p className="text-xs text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] px-3 py-1 rounded-full border border-[hsl(var(--border))]">
               Press Enter to send • Shift + Enter for new line
             </p>
           </div>

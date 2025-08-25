@@ -39,7 +39,9 @@ const CodeBlock = ({ node, inline, className, children, ...props }) => {
                     )}
                 </button>
             </div>
-            <pre className="p-4 overflow-x-auto text-sm text-foreground" {...props}>
+            {/* <pre className="p-4 overflow-x-auto text-sm text-foreground" {...props}> */}
+            <pre className="p-4 overflow-x-auto text-sm text-foreground whitespace-pre-wrap" {...props}>
+
                 <code>{children}</code>
             </pre>
         </div>
@@ -69,7 +71,7 @@ const [isCopied, setIsCopied] = useState(false);
  <Bot className="w-6 h-6 text-white" />
                 </div>
             }
-            <div className={`max-w-[80%] p-4 rounded-2xl shadow-sm relative ${isUser ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-br-none' : 'bg-secondary text-secondary-foreground rounded-bl-none'}`}>
+            <div className={`max-w-[60%] p-4 rounded-2xl shadow-sm relative ${isUser ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-br-none' : 'bg-secondary text-secondary-foreground rounded-bl-none'}`}>
                 {/* Copy Button for non-code messages */}
                 {!isUser && (
                     <button onClick={handleCopyMessage} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground text-xs">
