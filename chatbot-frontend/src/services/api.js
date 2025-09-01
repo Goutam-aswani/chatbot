@@ -28,17 +28,22 @@ export const setupAuthInterceptor = (logout) => {
  * @param {string} token - The user's authentication token.
  * @param {string} prompt - The user's message.
  * @param {number|null} sessionId - The ID of the current chat session.
+ * @param {string} modelName - The selected model name.
+ * @param {boolean} useWebSearch - Whether to use web search.
  * @param {function(string): void} onChunk - A callback function to handle each received chunk of text.
  * @returns {Promise<void>} A promise that resolves when the stream is complete.
  */
-export async function streamMessage(token, prompt, sessionId, onChunk) {
+export async function streamMessage(token, prompt, sessionId, modelName = "gemini-1.5-flash", useWebSearch = false, onChunk) {
     try {
         // DEBUG: Log the start of the fetch request
         const payload = { 
             prompt, 
-            session_id: sessionId  // This will be null for new conversations
+            session_id: sessionId,  // This will be null for new conversations
+            model_name: modelName,
+            use_web_search: useWebSearch
         };
-        console.log(`--- DEBUG: Starting stream fetch for session ${sessionId || 'new'} ---`);
+        console.log(`--- DEBUG: Starting stream fetch for session ${sessionId || 'new'} with model ${modelName} ---`);
+        console.log(`--- DEBUG: Web search enabled: ${useWebSearch} ---`);
         
         const response = await fetch(`${API_BASE_URL}/chats/`, {
             method: 'POST',
@@ -46,7 +51,7 @@ export async function streamMessage(token, prompt, sessionId, onChunk) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
             },
-            body: JSON.stringify({ prompt, session_id: sessionId }),
+            body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
@@ -186,6 +191,18 @@ export const api = {
         return await response.json();
     },
 
+    async getAvailableModels(token) {
+        try {
+            const response = await apiClient.get('/chats/models', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to fetch models:', error.response?.data || error.message);
+            throw new Error('Failed to fetch models');
+        }
+    },
+
     async postMessage(token, prompt, sessionId) {
         try {
             const payload = { prompt, session_id: sessionId };
@@ -273,4 +290,29 @@ export const api = {
     //         throw new Error('Failed to change password');
     //     }
     // }
+
+    // Usage Statistics API
+    async getUsageStats(token, days = 30) {
+        try {
+            const response = await apiClient.get(`/chats/usage/stats?days=${days}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to fetch usage stats:', error.response?.data || error.message);
+            throw new Error('Failed to fetch usage statistics');
+        }
+    },
+
+    async getUsageTotals(token) {
+        try {
+            const response = await apiClient.get('/chats/usage/totals', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to fetch usage totals:', error.response?.data || error.message);
+            throw new Error('Failed to fetch usage totals');
+        }
+    }
 };

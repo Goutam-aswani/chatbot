@@ -113,9 +113,13 @@ import { ChevronRightIcon } from "lucide-react";
 import { Send, MessageCircle, Paperclip} from 'lucide-react';
 import ChatMessage from './ChatMessage';
 
-export default function ChatWindow({ messages, onSendMessage, isLoading, onFileUpload, fileInputRef }) {
+export default function ChatWindow({ messages, onSendMessage, isLoading, onFileUpload, fileInputRef, chatInputRef }) {
     const [input, setInput] = useState('');
     const messagesEndRef = useRef(null);
+    const localInputRef = useRef(null);
+
+    // Use the passed ref or create a local one
+    const inputRef = chatInputRef || localInputRef;
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -129,9 +133,9 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, onFileU
     };
 
     return (
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-background via-background to-secondary/20">
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-background via-background to-secondary/20 min-h-0">
             {/* Messages Area */}
-            <div className="flex-1 p-6 overflow-y-auto">
+            <div className="flex-1 p-6 overflow-y-auto min-h-0">
                 {messages.length === 0 && !isLoading && (
                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                         <div className="relative mb-8">
@@ -198,6 +202,7 @@ export default function ChatWindow({ messages, onSendMessage, isLoading, onFileU
             <div className="relative flex-1">
               <div className="relative rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--input))] shadow-lg focus-within:border-[hsl(var(--ring))] focus-within:ring-1 focus-within:ring-[hsl(var(--ring))]/50 transition-all duration-200"> {/* Use CSS variables */}
                 <textarea
+                  ref={inputRef}
                   placeholder="Type your message..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}

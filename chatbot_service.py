@@ -74,48 +74,134 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_core.runnables import RunnablePassthrough
 from rag_service import get_session_retriever,get_session_retriever_with_scores
+from web_search_service import TavilySearchService
 from config import settings
-from typing import List
+from typing import List, Optional
 from operator import itemgetter
 
 
-def get_chatbot_response(prompt: str, chat_history: List[BaseMessage]):
+# Model configurations
+MODELS = {
+    # Google models
+    "gemini-1.5-flash": {
+        "provider": "google",
+        "model_name": "models/gemini-1.5-flash"
+    },
+    "gemini-2.0-flash-lite": {
+        "provider": "google", 
+        "model_name": "models/gemini-2.0-flash-lite"
+    },
+    "gemini-2.0-flash": {
+        "provider": "google",
+        "model_name": "models/gemini-2.0-flash"
+    },
+    "gemini-2.5-pro": {
+        "provider": "google",
+        "model_name": "models/gemini-2.5-pro"
+    },
+    # Groq models
+    "deepseek-r1-distill-llama-70b": {
+        "provider": "groq",
+        "model_name": "deepseek-r1-distill-llama-70b"
+    },
+    "llama-3.1-8b-instant": {
+        "provider": "groq",
+        "model_name": "llama-3.1-8b-instant"
+    },
+    "llama-3.3-70b-versatile": {
+        "provider": "groq",
+        "model_name": "llama-3.3-70b-versatile"
+    },
+    "llama3-70b-8192": {
+        "provider": "groq",
+        "model_name": "llama3-70b-8192"
+    },
+    "meta-llama/llama-4-maverick-17b-128e-instruct": {
+        "provider": "groq",
+        "model_name": "meta-llama/llama-4-maverick-17b-128e-instruct"
+    },
+    # OpenRouter models
+    "openai/gpt-oss-120b:free": {
+        "provider": "openrouter",
+        "model_name": "openai/gpt-oss-120b:free"
+    },
+    "qwen/qwen3-coder:free": {
+        "provider": "openrouter",
+        "model_name": "qwen/qwen3-coder:free"
+    },
+    "qwen/qwen3-235b-a22b:free": {
+        "provider": "openrouter",
+        "model_name": "qwen/qwen3-235b-a22b:free"
+    },
+    "deepseek/deepseek-r1-distill-llama-70b:free": {
+        "provider": "openrouter",
+        "model_name": "deepseek/deepseek-r1-distill-llama-70b:free"
+    }
+}
+
+
+def get_model_instance(model_name: str = "gemini-1.5-flash"):
+    """
+    Get the appropriate model instance based on model name
+    """
+    if model_name not in MODELS:
+        raise ValueError(f"Unknown model: {model_name}. Available models: {list(MODELS.keys())}")
+    
+    model_config = MODELS[model_name]
+    provider = model_config["provider"]
+    actual_model_name = model_config["model_name"]
+    
+    if provider == "google":
+        return ChatGoogleGenerativeAI(
+            model=actual_model_name,
+            google_api_key=settings.google_api_key
+        )
+    elif provider == "groq":
+        return ChatGroq(
+            model=actual_model_name,
+            groq_api_key=settings.grok_api_key
+        )
+    elif provider == "openrouter":
+        return ChatOpenAI(
+            model=actual_model_name,
+            openai_api_key=settings.openrouter_api_key,
+            openai_api_base="https://openrouter.ai/api/v1"
+        )
+    else:
+        raise ValueError(f"Unknown provider: {provider}")
+
+
+def get_chatbot_response(
+    prompt: str, 
+    chat_history: List[BaseMessage], 
+    model_name: str = "gemini-1.5-flash",
+    use_web_search: bool = False
+):
     """
     Initializes the chatbot model and gets a streaming response,
-    now with conversational context.
-    Args:
-        prompt: The new message from the user.
-        chat_history: A list of previous messages (HumanMessage, AIMessage)
-    Yields:
-        str: Chunks of the bot's response.
+    now with conversational context, model selection, and optional web search.
     """
-    if not settings.google_api_key:
-        raise ValueError("GOOGLE_API_KEY is not set in the environment.")
-
-    # llm = ChatGoogleGenerativeAI(model="models/gemini-2.5-flash", google_api_key=settings.google_api_key)
-   
-    # llm = ChatOpenAI(base_url="https://openrouter.ai/api/v1",
-    #     openai_api_key=settings.openai_api_key,
-    #     model="deepseek/deepseek-chat-v3-0324:free",  # Use any OpenRouter model
-    #     temperature=0.7,
-    #     max_tokens=5000,
-    #     streaming=True)
-
-    llm = ChatGroq(
-    model="llama3-70b-8192",
-    temperature=0.2,
-    max_tokens=None,
-    timeout=None,
-    max_retries=2,
-    api_key=settings.grok_api_key,  # Optional if you set GROQ_API_KEY
-    streaming=True
-)
+    llm = get_model_instance(model_name)
+    
+    # Initialize web search if enabled
+    web_search_context = ""
+    if use_web_search:
+        search_service = TavilySearchService()
+        search_results = search_service.search(prompt)
+        if search_results:
+            web_search_context = search_service.format_search_results(search_results)
+    
+    # Create system prompt with optional web search context
+    system_message = (
+        "You are a helpful assistant. You provide concise answers based on the provided context. "
+        "Format your responses using GitHub-flavored Markdown."
+    )
+    
+    if web_search_context:
+        system_message += f"\n\nHere is some relevant information from web search:\n\n{web_search_context}"
     
     prompt_template = ChatPromptTemplate.from_messages([
-        ("system", (
-            "You are a helpful assistant. You provide concise answers based on the provided context. "
-            "Format your responses using GitHub-flavored Markdown."
-        )),
+        ("system", system_message),
         MessagesPlaceholder(variable_name="chat_history"),
         ("user", "{input}")
     ])
@@ -124,11 +210,10 @@ def get_chatbot_response(prompt: str, chat_history: List[BaseMessage]):
     chain = prompt_template | llm | output_parser
    
     try:
-        # *** ENHANCED DEBUG: More detailed logging for troubleshooting ***
+        print(f"--- DEBUG: Using model: {model_name} ---")
+        print(f"--- DEBUG: Web search enabled: {use_web_search} ---")
         print(f"--- DEBUG: Streaming with prompt: '{prompt}' ---")
         print(f"--- DEBUG: Chat history length: {len(chat_history)} ---")
-        for i, msg in enumerate(chat_history):
-            print(f"--- DEBUG: History[{i}]: {type(msg).__name__} - '{msg.content[:50]}...' ---")
 
         response_stream = chain.stream({
             "input": prompt,
@@ -167,48 +252,49 @@ def check_document_relevance(retriever, query: str, min_docs: int = 2) -> tuple[
         return [], False
     
 
+def get_model(model_name:str = "gemini-1.5-flash"):
+    if model_name == "gemini-1.5-flash":
+        return ChatGoogleGenerativeAI(model="models/gemini-1.5-flash", google_api_key=settings.google_api_key)
+    elif model_name == "llama3-70b-8192":
+        return ChatGroq(
+            model="llama3-70b-8192",
+            temperature=0.2,
+            max_tokens=None,
+            timeout=None,
+            max_retries=2,
+            api_key=settings.grok_api_key,  # Optional if you set GROQ_API_KEY
+            streaming=True
+        )
+    else:
+        raise ValueError(f"Unknown model name: {model_name}")
 
-def get_rag_chatbot_response(prompt: str, chat_history: List[BaseMessage], session_id: int):
+
+def get_rag_chatbot_response(
+    prompt: str, 
+    chat_history: List[BaseMessage], 
+    session_id: int,
+    model_name: str = "gemini-1.5-flash",
+    use_web_search: bool = False
+):
     """
     Generates a streaming RAG response using conversational context and retrieved documents
-    filtered by the session_id.
+    filtered by the session_id with model selection and optional web search.
     """
-    model = ChatGroq(
-    model="llama3-70b-8192",
-    temperature=0.2,
-    max_tokens=None,
-    timeout=None,
-    max_retries=2,
-    api_key=settings.grok_api_key,  # Optional if you set GROQ_API_KEY
-    streaming=True
-)
-    llm = ChatGoogleGenerativeAI(model="models/gemini-2.0-flash-lite", google_api_key=settings.google_api_key)
+    model = get_model_instance(model_name)
+    
+    # Initialize web search if enabled
+    web_search_context = ""
+    if use_web_search:
+        search_service = TavilySearchService()
+        search_results = search_service.search(prompt)
+        if search_results:
+            web_search_context = search_service.format_search_results(search_results)
 
-    # retriever = get_session_retriever(session_id)
-    rewrite_prompt = PromptTemplate.from_template("""
-You are a query rewriter that improves vague or casual user queries for retrieval.
-
-CRITICAL RULES:
-1. If the input query is already clear, specific, and retrieval-friendly, return it EXACTLY as is without changing anything.
-2. Only rewrite if the query is vague, incomplete, casual, or ambiguous.
-3. Do NOT add extra information or assumptions that are not explicitly present in the user query.
-4. Do NOT include any meta text like "Here is the prompt" or explanations.
-5. Output must only be the final query text, nothing else.
-
-User query: {query}
-
-Decide: If the query is good, return it unchanged. Otherwise, rewrite it into a short, precise, and retrieval-friendly question.
-""")
-    # parser = StrOutputParser()
-    # query_rewriter_chain = rewrite_prompt | model | parser
-    # enhanced_prompt = query_rewriter_chain.invoke({"query": prompt})
-    # print(f"--- DEBUG: Enhanced prompt after rewriting: '{enhanced_prompt}' ---")
     retriever = get_session_retriever_with_scores(session_id, similarity_threshold=0.95)
 
     retrieved_docs, has_sufficient_docs = check_document_relevance(retriever, prompt, min_docs=1)
     if not has_sufficient_docs:
         print(f"--- INFO: Rejecting query due to insufficient relevant documents ---")
-    # Return a generator that yields the rejection message
         def rejection_generator():
             yield "I cannot answer this question as I don't find sufficient relevant information in the uploaded documents. Please ensure your question is related to the content of the uploaded files."
         return rejection_generator()
@@ -217,38 +303,10 @@ Decide: If the query is good, return it unchanged. Otherwise, rewrite it into a 
         if not docs_list:
             return "No relevant documents found."
         return "\n\n".join(doc.page_content for doc in docs_list)
-    # 1. Define the prompt template for RAG
-    # rag_prompt = ChatPromptTemplate.from_messages([
-    #     ("system", (
-    #         "You are a helpful assistant. Answer the user's question based ONLY on the context provided below. "
-    #         "Format your responses using GitHub-flavored Markdown."
-    #         "If the context doesn't contain the answer, state that you don't have enough information from the document.\n"
-            
-    #         """You are an expert assistant for analyzing documents.
-    # Your task is to answer the user's question based ONLY on the provided context.
 
-    # CONTEXT:
-    # {context}
-
-    # INSTRUCTIONS:
-    # 1. Carefully read the provided context to find the most direct answer to the question.
-    # 2. Your answer MUST be concise and to the point, ideally 1-3 sentences.
-    # 3. If the answer includes a specific number, duration, or key condition (like an exception), you MUST include it.
-    # 4. Do not start your answer with phrases like "Based on the context..." or "The provided text states...".
-    # 5. If the information is not present in the context, state that the answer cannot be found in the document.
-    # 6. Be factually accurate and directly sourced from the document.
-    # 7. Use formal language and retain any legal or technical terminology as mentioned in the policy.
-    # 8. Follow the same order as the questions.
-    # 9. If the question is not answerable, respond with "The answer to this question is not available in the document."
-    # 10.Include all relevant numeric data found in the document"""
-    #     )),
-    #     MessagesPlaceholder(variable_name="chat_history"),
-    #     ("user", "{input}")
-    # ])
-    rag_prompt = ChatPromptTemplate.from_messages([
-
-("system", (
-    """You are a document analysis assistant. Your ONLY job is to answer questions based STRICTLY on the provided context from uploaded documents.
+    # Create system prompt with optional web search context
+    system_message = (
+        """You are a document analysis assistant. Your ONLY job is to answer questions based STRICTLY on the provided context from uploaded documents.
 
 CRITICAL RULES:
 1. You MUST ONLY use information that is explicitly stated in the context provided below
@@ -270,24 +328,26 @@ FORMAT REQUIREMENTS:
 
 CONTEXT:
 {context}
-\n
+
 THE CONTEXT IS YOUR KNOWLEDGE BASE THE CONTEXT IS ALL YOU KNOW
 
 Remember: It's better to say "I don't know based on the documents" than to provide information not found in the context."""
-)),
-MessagesPlaceholder(variable_name="chat_history"),
+    )
+    
+    if web_search_context:
+        system_message += f"\n\nAdditional web search information (use only if relevant to document context):\n\n{web_search_context}"
+
+    rag_prompt = ChatPromptTemplate.from_messages([
+        ("system", system_message),
+        MessagesPlaceholder(variable_name="chat_history"),
         ("user", "{input}")
     ])
 
-    # 2. Helper function to format the retrieved documents
-    # def format_docs(docs):
-    #     return "\n\n".join(doc.page_content for doc in docs)
-
-    # 3. Construct the RAG chain using LangChain Expression Language (LCEL)
-    print(f"--- DEBUG: Creating RAG chain for session_id: {session_id} ---")
+    print(f"--- DEBUG: Creating RAG chain for session_id: {session_id} with model: {model_name} ---")
+    print(f"--- DEBUG: Web search enabled: {use_web_search} ---")
+    
     rag_chain = (
         {
-            # "context": itemgetter("input") | retriever | format_docs(retrieved_docs),
             "context": lambda x: format_docs(retrieved_docs),
             "input": itemgetter("input"),
             "chat_history": itemgetter("chat_history"),
@@ -296,8 +356,10 @@ MessagesPlaceholder(variable_name="chat_history"),
         | model
         | StrOutputParser()
     )
+    
     print(f"--- DEBUG: RAG chain created for session_id: {session_id} ---")
     return rag_chain.stream({
         "input": prompt,
         "chat_history": chat_history
     })
+

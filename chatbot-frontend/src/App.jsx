@@ -9,6 +9,7 @@ import SignupPage from './pages/SignupPage';
 import VerifyPage from './pages/VerifyPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
+import UsageDashboard from './pages/UsageDashboard';
 
 // The rest of the file remains the same...
 
@@ -55,6 +56,14 @@ function App() {
                 element={
                     <ProtectedRoute>
                         <SettingsPage />
+                    </ProtectedRoute>
+                }
+            />
+      <Route
+                path="/usage"
+                element={
+                    <ProtectedRoute>
+                        <UsageDashboard />
                     </ProtectedRoute>
                 }
             />

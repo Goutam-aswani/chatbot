@@ -5,6 +5,9 @@ import { useAuth } from '../hooks/useAuth';
 import { api, streamMessage } from '../services/api';
 import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
+import ChatSettings from '../components/ChatSettings';
+import KeyboardShortcutsModal from '../components/KeyboardShortcutsModal';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { Hand, PanelRight, Paperclip } from 'lucide-react';
 
 export default function ChatPage() {
@@ -16,7 +19,13 @@ export default function ChatPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [availableModels, setAvailableModels] = useState({});
+    const [selectedModel, setSelectedModel] = useState('gemini-1.5-flash');
+    const [useWebSearch, setUseWebSearch] = useState(false);
+    const [isModelsLoading, setIsModelsLoading] = useState(false);
+    const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
     const fileInputRef = useRef(null);
+    const chatInputRef = useRef(null);
 
     // Ref to keep track of the ongoing typing animation
     const typingTimeoutRef = useRef(null);
@@ -37,19 +46,29 @@ export default function ChatPage() {
         }
     };
 
+    const fetchAvailableModels = async () => {
+        if (!token) return;
+        setIsModelsLoading(true);
+        try {
+            const models = await api.getAvailableModels(token);
+            setAvailableModels(models);
+        } catch (error) {
+            console.error("Failed to fetch models:", error);
+        } finally {
+            setIsModelsLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchSessions();
+        fetchAvailableModels();
     }, [token]);
 
-    // Cleanup the typing timeout when the component unmounts or a new message is sent
-    useEffect(() => {
-        return () => {
-            if (typingTimeoutRef.current) {
-                clearTimeout(typingTimeoutRef.current);
-            }
-        };
-    }, [messages]); // Add messages as a dependency to clear timeout when new message is added
-
+    // Define handler functions first
+    const handleNewChat = () => {
+        setActiveSession(null);
+        setMessages([]);
+    };
 
     const handleSelectSession = async (sessionId) => {
         setIsLoading(true);
@@ -65,10 +84,65 @@ export default function ChatPage() {
         }
     };
 
-    const handleNewChat = () => {
-        setActiveSession(null);
-        setMessages([]);
+    // Keyboard shortcuts handlers
+    const handleFocusInput = () => {
+        if (chatInputRef.current) {
+            chatInputRef.current.focus();
+        }
     };
+
+    const handleToggleSidebar = () => {
+        setIsSidebarCollapsed(prev => !prev);
+    };
+
+    const handleToggleSettings = () => {
+        // You can implement a settings modal later if needed
+        console.log('Settings shortcut pressed');
+    };
+
+    const handleClearChat = () => {
+        if (messages.length > 0 && window.confirm('Are you sure you want to clear this chat?')) {
+            handleNewChat();
+        }
+    };
+
+    // Initialize keyboard shortcuts
+    useKeyboardShortcuts({
+        onNewChat: handleNewChat,
+        onFocusInput: handleFocusInput,
+        onToggleSidebar: handleToggleSidebar,
+        onToggleSettings: handleToggleSettings,
+        onClearChat: handleClearChat,
+        inputRef: chatInputRef
+    });
+
+    // Handle '?' key for shortcuts modal
+    useEffect(() => {
+        const handleKeyPress = (event) => {
+            if (event.key === '?' && !event.ctrlKey && !event.metaKey) {
+                const isInputActive = event.target.tagName === 'INPUT' || 
+                                     event.target.tagName === 'TEXTAREA' || 
+                                     event.target.contentEditable === 'true';
+                if (!isInputActive) {
+                    event.preventDefault();
+                    setIsShortcutsModalOpen(true);
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyPress);
+        return () => document.removeEventListener('keydown', handleKeyPress);
+    }, []);
+
+    // Cleanup the typing timeout when the component unmounts or a new message is sent
+    useEffect(() => {
+        return () => {
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+        };
+    }, [messages]); // Add messages as a dependency to clear timeout when new message is added
+
 
     const handleSendMessage = async (prompt) => {
         console.log('--- DEBUG: handleSendMessage called with activeSession:', activeSession);
@@ -88,6 +162,8 @@ export default function ChatPage() {
                 token,
                 prompt,
                 activeSession,
+                selectedModel,
+                useWebSearch,
                 (chunk) => {
                     // Append the new chunk to the accumulated response
                     accumulatedResponse += chunk;
@@ -200,7 +276,7 @@ export default function ChatPage() {
     };
 
     return (
-        <div className="flex h-screen font-sans">
+        <div className="flex h-screen font-sans overflow-hidden">
             <Sidebar
                 isCollapsed={isSidebarCollapsed}
                 onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
@@ -212,12 +288,29 @@ export default function ChatPage() {
                 activeSessionId={activeSession}
                 isLoading={isHistoryLoading}
             />
-            <ChatWindow
-                messages={messages}
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading}
-                onFileUpload={handleFileUpload}
-                fileInputRef={fileInputRef}
+            <div className="flex flex-col flex-1 min-h-0">
+                <ChatSettings
+                    selectedModel={selectedModel}
+                    onModelChange={setSelectedModel}
+                    useWebSearch={useWebSearch}
+                    onWebSearchToggle={setUseWebSearch}
+                    availableModels={availableModels}
+                    isLoading={isLoading || isModelsLoading}
+                />
+                <ChatWindow
+                    messages={messages}
+                    onSendMessage={handleSendMessage}
+                    isLoading={isLoading}
+                    onFileUpload={handleFileUpload}
+                    fileInputRef={fileInputRef}
+                    chatInputRef={chatInputRef}
+                />
+            </div>
+            
+            {/* Keyboard Shortcuts Modal */}
+            <KeyboardShortcutsModal
+                isOpen={isShortcutsModalOpen}
+                onClose={() => setIsShortcutsModalOpen(false)}
             />
         </div>
     );

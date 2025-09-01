@@ -8,10 +8,11 @@ from limiter import limiter
 from database import get_session
 from models import User, ChatSession, ChatMessage
 from dependencies import get_current_active_user
-from chatbot_service import get_chatbot_response, get_rag_chatbot_response
+from chatbot_service import get_chatbot_response, get_rag_chatbot_response, MODELS
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from langchain_core.messages import HumanMessage, AIMessage
+from usage_tracker import UsageTracker
 
 CHAT_RATE_LIMIT = "30/minute"
 router = APIRouter(
@@ -39,6 +40,8 @@ class ChatHistoryResponse(BaseModel):
 class NewChatMessageRequest(BaseModel):
     prompt: str
     session_id: Optional[int] = None
+    model_name: Optional[str] = "gemini-1.5-flash"
+    use_web_search: Optional[bool] = False
 
 class RenameChatRequest(BaseModel):
     new_title: str
@@ -128,12 +131,21 @@ class RenameChatRequest(BaseModel):
 #         media_type="text/plain; charset=utf-8"
 #     )
 # *** CHANGE: Modified to return session ID in response headers ***
-def stream_and_save_response_with_headers(prompt: str, chat_session_id: int, chat_history: list, db_session: Session,current_user:User = Depends(get_current_active_user)):
+def stream_and_save_response_with_headers(
+    prompt: str, 
+    chat_session_id: int, 
+    chat_history: list, 
+    db_session: Session,
+    model_name: str = "gemini-1.5-flash",
+    use_web_search: bool = False,
+    current_user:User = Depends(get_current_active_user)
+):
     """
     Streams the chatbot response and saves the full message.
-    Now yields both content and session metadata.
+    Now yields both content and session metadata with model selection and web search.
     """
-    print(f"--- DEBUG: Starting stream for session {chat_session_id} ---")
+    print(f"--- DEBUG: Starting stream for session {chat_session_id} with model {model_name} ---")
+    print(f"--- DEBUG: Web search enabled: {use_web_search} ---")
     print(f"--- DEBUG: Chat history length being passed: {len(chat_history)} ---")
 
     chat_session = db_session.get(ChatSession, chat_session_id)
@@ -144,10 +156,14 @@ def stream_and_save_response_with_headers(prompt: str, chat_session_id: int, cha
     # THE CORE LOGIC: Decide which response generator to use
     if chat_session.has_documents:
         print(f"--- INFO: Using RAG chain for session {chat_session_id} ---")
-        response_generator = get_rag_chatbot_response(prompt, chat_history, chat_session_id)
+        response_generator = get_rag_chatbot_response(
+            prompt, chat_history, chat_session_id, model_name, use_web_search
+        )
     else:
         print(f"--- INFO: Using standard chain for session {chat_session_id} ---")
-        response_generator = get_chatbot_response(prompt, chat_history)
+        response_generator = get_chatbot_response(
+            prompt, chat_history, model_name, use_web_search
+        )
 
     full_bot_response = ""
     for chunk in response_generator:
@@ -166,6 +182,21 @@ def stream_and_save_response_with_headers(prompt: str, chat_session_id: int, cha
     try:
         db_session.commit()
         print(f"--- DEBUG: Successfully saved bot response to DB for session {chat_session_id} ---")
+        
+        # Track usage statistics
+        try:
+            # Estimate tokens (rough approximation: 1 token ≈ 4 characters)
+            estimated_tokens = len(full_bot_response) // 4
+            UsageTracker.track_message(
+                user_id=current_user.id,
+                tokens_used=estimated_tokens,
+                model_name=model_name,
+                web_search_used=use_web_search
+            )
+            print(f"--- DEBUG: Usage tracked for user {current_user.id} ---")
+        except Exception as tracking_error:
+            print(f"--- DEBUG: Error tracking usage: {tracking_error} ---")
+            
     except Exception as e:
         print(f"--- DEBUG: Error saving bot response to DB: {e} ---")
         db_session.rollback()
@@ -203,6 +234,14 @@ def post_new_message(
             db_session.refresh(chat_session)
             session_was_created = True  # *** CHANGE: Mark that we created a new session ***
             print(f"--- DEBUG: Created NEW chat session with ID: {chat_session.id} ---")
+            
+            # Track session creation
+            try:
+                UsageTracker.track_session_created(current_user.id)
+                print(f"--- DEBUG: Session creation tracked for user {current_user.id} ---")
+            except Exception as tracking_error:
+                print(f"--- DEBUG: Error tracking session creation: {tracking_error} ---")
+                
         except Exception as e:
             print(f"--- DEBUG: Error creating chat session: {e} ---")
             db_session.rollback()
@@ -254,7 +293,9 @@ def post_new_message(
             request_data.prompt, 
             chat_session.id, 
             chat_history_for_chain, 
-            db_session
+            db_session,
+            request_data.model_name,
+            request_data.use_web_search
         ),
         media_type="text/plain; charset=utf-8"
     )
@@ -268,6 +309,21 @@ def post_new_message(
     return response
 
 # --- Other Endpoints (No changes) ---
+@router.get("/models", summary="Get available models")
+def get_available_models():
+    """Get list of available models grouped by provider"""
+    models_by_provider = {}
+    for model_name, config in MODELS.items():
+        provider = config["provider"]
+        if provider not in models_by_provider:
+            models_by_provider[provider] = []
+        models_by_provider[provider].append({
+            "name": model_name,
+            "display_name": model_name.replace("models/", "").replace("/", " / ")
+        })
+    return models_by_provider
+
+
 @router.get("/", response_model=List[ChatSessionResponse], summary="Get all chat sessions for the current user")
 def get_user_chat_sessions(
     *, 
@@ -405,3 +461,63 @@ def delete_chat_session(
 #         db.commit()
 
 #     return StreamingResponse(stream_response(), media_type="text/event-stream")
+
+
+# Usage Statistics Endpoints
+@router.get("/usage/stats", summary="Get usage statistics for the current user")
+async def get_usage_stats(
+    days: int = 30,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get usage statistics for the current user over the specified number of days"""
+    try:
+        stats = UsageTracker.get_user_usage_stats(current_user.id, days)
+        return {"stats": stats}
+    except Exception as e:
+        print(f"--- ERROR: Failed to get usage stats: {e} ---")
+        raise HTTPException(status_code=500, detail="Failed to retrieve usage statistics")
+
+
+@router.get("/usage/totals", summary="Get total usage statistics for the current user")
+async def get_usage_totals(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get total usage statistics for the current user"""
+    try:
+        totals = UsageTracker.get_user_total_stats(current_user.id)
+        return totals
+    except Exception as e:
+        print(f"--- ERROR: Failed to get usage totals: {e} ---")
+        raise HTTPException(status_code=500, detail="Failed to retrieve usage totals")
+
+
+# Usage Statistics Endpoints
+@router.get("/usage/stats")
+async def get_usage_stats(
+    days: int = 30,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get usage statistics for the current user over the last N days"""
+    try:
+        stats = UsageTracker.get_user_usage_stats(current_user.id, days)
+        return {"stats": stats}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch usage statistics: {str(e)}"
+        )
+
+
+@router.get("/usage/totals")
+async def get_usage_totals(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get total usage statistics for the current user"""
+    try:
+        totals = UsageTracker.get_user_total_stats(current_user.id)
+        return totals
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch usage totals: {str(e)}"
+        )

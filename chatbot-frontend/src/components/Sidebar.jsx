@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, LogOut, MessageSquare, Trash2, MoreHorizontal, Pencil, Check, X, ChevronsLeft,PanelRight,User } from 'lucide-react';
+import { Plus, LogOut, MessageSquare, Trash2, MoreHorizontal, Pencil, Check, X, ChevronsLeft,PanelRight,User, Sun, Moon, BarChart3 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../context/ThemeContext';
 import { Link } from 'react-router-dom';
 import { Settings } from 'lucide-react';
 
@@ -118,35 +119,46 @@ const SessionItem = ({ session, onSelect, onDelete, onRename, activeSessionId })
 
 export default function Sidebar({ sessions, onSelectSession, onNewChat, onDeleteSession, onRenameSession, activeSessionId, isLoading, isCollapsed, onToggleCollapse }) {
     const { logout } = useAuth();
+    const { theme, toggleTheme } = useTheme();
 
     return (
         // Use CSS variables for the main sidebar container
-        <div className={`bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] flex flex-col p-3 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-20' : 'w-64'}`}>
+        <div className={`bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] flex flex-col transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16 p-2' : 'w-64 p-3'}`}>
 
             {isCollapsed ? (
                 // --- COLLAPSED VIEW ---
                 <>
                     {/* Use CSS variables for Expand Button */}
-                    <button onClick={onToggleCollapse} className="p-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mb-4 transition-colors duration-200 ease-in-out">
-                        <PanelRight className="w-6 h-6" />
+                    <button onClick={onToggleCollapse} className="p-1.5 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mb-3 transition-colors duration-200 ease-in-out">
+                        <PanelRight className="w-5 h-5" />
                     </button>
                     {/* New Chat Button (Icon Only) - Use CSS variables for colors */}
                     <button
                         onClick={onNewChat}
-                        className="flex items-center justify-center w-full h-12 mb-4 text-[hsl(var(--primary-foreground))] bg-[hsl(var(--primary))] rounded-lg hover:bg-[hsl(var(--primary))/90] shadow-md"
+                        className="flex items-center justify-center w-full h-10 mb-3 text-[hsl(var(--primary-foreground))] bg-[hsl(var(--primary))] rounded-lg hover:bg-gradient-to-r hover:from-[hsl(var(--primary))] hover:to-blue-600 hover:shadow-lg transform hover:scale-105 transition-all duration-200 ease-in-out shadow-md"
                         title="New Chat"
                     >
-                        <Plus className="w-6 h-6" />
+                        <Plus className="w-5 h-5" />
                     </button>
                     {/* Spacer to push logout to the bottom */}
                     <div className="flex-grow"></div>
+                    
+                    {/* Theme Toggle Button (Icon Only) - Use CSS variables for colors */}
+                    {/* <button
+                        onClick={toggleTheme}
+                        className="flex items-center justify-center w-full h-12 mb-2 text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] rounded-lg hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))] transition-colors duration-200 ease-in-out border border-[hsl(var(--border))]"
+                        title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                    >
+                        {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                    </button> */}
+                    
                     {/* Logout Button (Icon Only) - Use CSS variables for colors */}
                     <button
                         onClick={logout}
-                        className="flex items-center justify-center w-full h-12 text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] rounded-lg hover:bg-[hsl(var(--destructive))/80] hover:text-[hsl(var(--destructive-foreground))] transition-colors duration-200 ease-in-out border border-[hsl(var(--border))]"
+                        className="flex items-center justify-center w-full h-10 text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] rounded-lg hover:bg-[hsl(var(--destructive))/80] hover:text-[hsl(var(--destructive-foreground))] transition-colors duration-200 ease-in-out border border-[hsl(var(--border))]"
                         title="Logout"
                     >
-                        <LogOut className="w-6 h-6" />
+                        <LogOut className="w-5 h-5" />
                     </button>
                 </>
             ) : (
@@ -168,7 +180,7 @@ export default function Sidebar({ sessions, onSelectSession, onNewChat, onDelete
                     {/* New Chat Button (With Text) - Use CSS variables for colors */}
                     <button
                         onClick={onNewChat}
-                        className="flex items-center justify-center w-full px-4 py-2.5 mb-4 font-semibold text-[hsl(var(--primary-foreground))] bg-[hsl(var(--primary))] rounded-lg hover:bg-[hsl(var(--primary))/90] transition-all transform hover:scale-105 shadow-md"
+                        className="flex items-center justify-center w-full px-4 py-2.5 mb-4 font-semibold text-[hsl(var(--primary-foreground))] bg-[hsl(var(--primary))] rounded-lg hover:bg-gradient-to-r hover:from-[hsl(var(--primary))] hover:to-blue-600 hover:shadow-lg transform hover:scale-105 transition-all duration-200 ease-in-out shadow-md"
                     >
                         <Plus className="w-4 h-4 mr-2" /> New Chat
                     </button>
@@ -196,11 +208,34 @@ export default function Sidebar({ sessions, onSelectSession, onNewChat, onDelete
                     {/* Settings Button - Use CSS variables */}
 <div className="pt-2 border-t border-[hsl(var(--border))]">
                         <Link
+                            to="/usage"
+                            className="flex items-center justify-center w-full px-4 py-2 mt-2 text-sm font-semibold text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] rounded-lg hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))] transition-colors border border-[hsl(var(--border))]"
+                        >
+                            <BarChart3 className="w-4 h-4 mr-2" /> Usage Stats
+                        </Link>
+                        
+                        <Link
                             to="/settings"
                             className="flex items-center justify-center w-full px-4 py-2 mt-2 text-sm font-semibold text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] rounded-lg hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))] transition-colors border border-[hsl(var(--border))]"
                         >
                             <Settings className="w-4 h-4 mr-2" /> Settings
                         </Link>
+                        
+                        {/* Theme Toggle Button - Use CSS variables */}
+                        {/* <button
+                            onClick={toggleTheme}
+                            className="flex items-center justify-center w-full px-4 py-2 mt-2 text-sm font-semibold text-[hsl(var(--muted-foreground))] bg-[hsl(var(--secondary))] rounded-lg hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))] transition-colors border border-[hsl(var(--border))]"
+                        >
+                            {theme === 'light' ? (
+                                <>
+                                    <Moon className="w-4 h-4 mr-2" /> Dark Mode
+                                </>
+                            ) : (
+                                <>
+                                    <Sun className="w-4 h-4 mr-2" /> Light Mode
+                                </>
+                            )}
+                        </button> */}
                     </div>
                      {/* Logout Button (With Text) - Use CSS variables for colors */}
                     <button onClick={logout} className="flex items-center justify-center w-full px-4 py-2.5 mt-4 text-[hsl(var(--destructive))] bg-[hsl(var(--secondary))] rounded-lg hover:bg-[hsl(var(--destructive))/20] transition-colors shadow-md border border-[hsl(var(--border))]">
